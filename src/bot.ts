@@ -66,8 +66,9 @@ chat.onAction(["bug", "feature"], async (event) => {
   const category = event.actionId;
   const title = category === "bug" ? "バグ報告フォーム" : "機能要望フォーム";
 
-  // threadId が未定義またはmessageId と同値 = チャンネルルートのカード（スラッシュコマンド）
-  const isInThread = !!event.threadId && event.threadId !== event.messageId;
+  // threadId が未定義 or messageId で終わる = チャンネルルートのカード（スラッシュコマンド）
+  // threadId は "slack:C123:1234567890.123456" 形式、messageId は "1234567890.123456" 形式のため endsWith で比較
+  const isInThread = !!event.threadId && !event.threadId.endsWith(event.messageId);
 
   await event.openModal(
     Modal({
