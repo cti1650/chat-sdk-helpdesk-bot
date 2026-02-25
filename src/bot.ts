@@ -66,8 +66,8 @@ chat.onAction(["bug", "feature"], async (event) => {
   const category = event.actionId;
   const title = category === "bug" ? "バグ報告フォーム" : "機能要望フォーム";
 
-  // threadId が messageId で終わる = チャンネルルートのカード（スラッシュコマンド）
-  const isInThread = !event.threadId.endsWith(event.messageId);
+  // threadId が未定義またはmessageId と同値 = チャンネルルートのカード（スラッシュコマンド）
+  const isInThread = !!event.threadId && event.threadId !== event.messageId;
 
   await event.openModal(
     Modal({
@@ -84,6 +84,7 @@ chat.onAction(["bug", "feature"], async (event) => {
           id: "description",
           label: "詳細",
           multiline: true,
+          optional: true,
         }),
         Select({
           id: "priority",
@@ -109,7 +110,7 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
   const { title, description, priority } = event.values;
 
   // チケットIDを生成
-  const ticketId = `HD-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;
+  const ticketId = `HD-${Date.now().toString(36).slice(-6).toUpperCase()}`;
 
   // カテゴリを取得（callbackIdから）
   const category = event.callbackId.includes("bug") ? "バグ報告" : "機能要望";
@@ -124,8 +125,7 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
       `カテゴリ: ${category}`,
       `件名: ${title}`,
       `優先度: ${priority}`,
-      `---`,
-      description,
+      ...(description ? [`---`, description] : []),
     ].join("\n"),
   };
 
@@ -134,7 +134,8 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
     await event.relatedThread?.post(completionMessage);
   } else {
     // スラッシュコマンド起因: チャンネルへ独立メッセージとして投稿
-    await event.relatedThread?.channel.post(completionMessage);
+    // relatedThread が取れる場合はその channel へ、取れない場合は relatedChannel へフォールバック
+    await (event.relatedThread?.channel ?? event.relatedChannel)?.post(completionMessage);
   }
 
   // フォーム送信後にボタンカードを削除
