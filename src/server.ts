@@ -48,22 +48,19 @@ app.post("/webhook", express.raw({ type: "*/*" }), async (req: Request, res: Res
   res.end(Buffer.from(await webResponse.arrayBuffer()));
 });
 
-// ローカル開発時のみサーバー起動（Vercel はエクスポートされたアプリを使用）
-if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 Webhook endpoint: http://localhost:${PORT}/webhook`);
-    console.log(`💚 Health check: http://localhost:${PORT}/health`);
+// Vercel は export default app を検出した場合 app.listen() を無視するため条件分岐不要
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Webhook endpoint: http://localhost:${PORT}/webhook`);
+  console.log(`💚 Health check: http://localhost:${PORT}/health`);
 
-    // 設定状況を表示
-    if (!process.env.SLACK_BOT_TOKEN) {
-      console.warn("⚠️  SLACK_BOT_TOKEN is not set");
-    }
-    if (!process.env.SLACK_SIGNING_SECRET) {
-      console.warn("⚠️  SLACK_SIGNING_SECRET is not set");
-    }
-  });
-}
+  if (!process.env.SLACK_BOT_TOKEN) {
+    console.warn("⚠️  SLACK_BOT_TOKEN is not set");
+  }
+  if (!process.env.SLACK_SIGNING_SECRET) {
+    console.warn("⚠️  SLACK_SIGNING_SECRET is not set");
+  }
+});
 
 export default app;
 
