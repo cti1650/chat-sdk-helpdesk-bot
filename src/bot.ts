@@ -60,7 +60,8 @@ chat.onNewMention(async (thread, message) => {
  * 2️⃣ カテゴリボタン押下
  * ボタンが押されたらモーダルフォームを開く
  */
-chat.onAction(async (event) => {
+chat.onAction(["bug", "feature"], async (event) => {
+  console.log(`🔘 Action received: ${event.actionId}`);
   const category = event.actionId;
   const title = category === "bug" ? "バグ報告フォーム" : "機能要望フォーム";
 
@@ -97,7 +98,7 @@ chat.onAction(async (event) => {
  * 3️⃣ モーダル送信
  * フォーム送信後、受付完了メッセージをスレッドに投稿
  */
-chat.onModalSubmit(async (event): Promise<ModalResponse | undefined> => {
+chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (event): Promise<ModalResponse | undefined> => {
   const { title, description, priority } = event.values;
 
   // チケットIDを生成
