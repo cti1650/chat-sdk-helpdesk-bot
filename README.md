@@ -10,7 +10,7 @@ Slack / Teams などマルチプラットフォーム対応
 
 ### 主な機能
 
-- ✅ `@helpdeskbot help` メンションでカテゴリ選択カードを表示
+- ✅ `/help` スラッシュコマンドまたは `@helpdeskbot help` メンションでカテゴリ選択カードを表示
 - ✅ ボタン押下でモーダルフォームを開く
 - ✅ フォーム送信後にスレッドへ受付完了メッセージを投稿
 - ✅ フォーム送信後にボタンカードを自動削除
@@ -97,6 +97,11 @@ features:
   bot_user:
     display_name: "helpdeskbot"
     always_online: false
+  slash_commands:
+    - command: "/help"
+      description: "ヘルプデスクのお問い合わせフォームを表示"
+      usage_hint: ""
+      should_escape: false
 
 oauth_config:
   scopes:
@@ -104,6 +109,7 @@ oauth_config:
       - app_mentions:read  # @helpdeskbot help のメンション受信
       - chat:write         # Botが参加済みチャンネルへの投稿
       - chat:write.public  # Botが未参加のパブリックチャンネルへの投稿
+      - commands           # スラッシュコマンド（/help）の使用
       - channels:history   # パブリックチャンネルのメッセージ履歴読み取り
       - im:history         # DM（ダイレクトメッセージ）の履歴読み取り
 
@@ -172,9 +178,13 @@ https://xxxx.ngrok.io/webhook
 /invite @YourBotName
 ```
 
-### 2. help メンションを送る
+### 2. help を呼び出す
 
-チャンネルで Bot にメンション
+スラッシュコマンドまたはメンションで呼び出し
+
+```
+/help
+```
 
 ```
 @helpdeskbot help

@@ -29,31 +29,32 @@ const chat = new Chat({
   logger,
 });
 
+const helpCard = Card({
+  title: "お問い合わせカテゴリを選択してください",
+  children: [
+    Actions([
+      Button({ id: "bug", label: "🐛 バグ報告", style: "primary" }),
+      Button({ id: "feature", label: "✨ 機能要望" }),
+    ]),
+  ],
+});
+
 /**
  * 1️⃣ help メンション
  * ユーザーが @helpdeskbot help と投稿すると、カテゴリ選択カードを表示
  */
 chat.onNewMention(async (thread, message) => {
   if (message.text?.toLowerCase().includes("help")) {
-    await thread.post(
-      Card({
-        title: "お問い合わせカテゴリを選択してください",
-        children: [
-          Actions([
-            Button({
-              id: "bug",
-              label: "🐛 バグ報告",
-              style: "primary"
-            }),
-            Button({
-              id: "feature",
-              label: "✨ 機能要望"
-            }),
-          ]),
-        ],
-      })
-    );
+    await thread.post(helpCard);
   }
+});
+
+/**
+ * 1️⃣' /help スラッシュコマンド
+ * ユーザーが /help と入力すると、カテゴリ選択カードを表示
+ */
+chat.onSlashCommand("/help", async (event) => {
+  await event.channel.post(helpCard);
 });
 
 /**
