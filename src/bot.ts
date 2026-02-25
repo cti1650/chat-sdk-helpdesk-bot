@@ -66,11 +66,15 @@ chat.onAction(["bug", "feature"], async (event) => {
   const category = event.actionId;
   const title = category === "bug" ? "バグ報告フォーム" : "機能要望フォーム";
 
+  // threadId が messageId で終わる = チャンネルルートのカード（スラッシュコマンド）
+  const isInThread = !event.threadId.endsWith(event.messageId);
+
   await event.openModal(
     Modal({
       callbackId: `helpdesk_submit_${category}`,
       title,
       submitLabel: "送信",
+      privateMetadata: JSON.stringify({ isInThread }),
       children: [
         TextInput({
           id: "title",
@@ -97,7 +101,9 @@ chat.onAction(["bug", "feature"], async (event) => {
 
 /**
  * 3️⃣ モーダル送信
- * フォーム送信後、受付完了メッセージをスレッドに投稿
+ * フォーム送信後、受付完了メッセージを投稿しボタンカードを削除
+ * - スレッド内（メンション起因）: スレッドへの返信として投稿
+ * - チャンネルルート（スラッシュコマンド起因）: チャンネルへ独立メッセージとして投稿
  */
 chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (event): Promise<ModalResponse | undefined> => {
   const { title, description, priority } = event.values;
@@ -108,7 +114,10 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
   // カテゴリを取得（callbackIdから）
   const category = event.callbackId.includes("bug") ? "バグ報告" : "機能要望";
 
-  await event.relatedThread?.post({
+  // onAction で設定した privateMetadata からスレッド内かどうかを取得
+  const { isInThread } = JSON.parse(event.privateMetadata || "{}") as { isInThread?: boolean };
+
+  const completionMessage = {
     markdown: [
       `**受付完了 ✅**`,
       `受付番号: ${ticketId}`,
@@ -118,7 +127,15 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
       `---`,
       description,
     ].join("\n"),
-  });
+  };
+
+  if (isInThread) {
+    // メンション起因: スレッド返信として投稿
+    await event.relatedThread?.post(completionMessage);
+  } else {
+    // スラッシュコマンド起因: チャンネルへ独立メッセージとして投稿
+    await event.relatedThread?.channel.post(completionMessage);
+  }
 
   // フォーム送信後にボタンカードを削除
   await event.relatedMessage?.delete();
