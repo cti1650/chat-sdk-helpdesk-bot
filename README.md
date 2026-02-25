@@ -10,10 +10,12 @@ Slack / Teams などマルチプラットフォーム対応
 
 ### 主な機能
 
-- ✅ `help` コマンドでカテゴリ選択カードを表示
+- ✅ `@helpdeskbot help` メンションでカテゴリ選択カードを表示
 - ✅ ボタン押下でモーダルフォームを開く
 - ✅ フォーム送信後にスレッドへ受付完了メッセージを投稿
+- ✅ フォーム送信後にボタンカードを自動削除
 - ✅ Redis / Memory State Adapter の自動切替
+- ✅ Vercel `waitUntil` による Slack `expired_trigger_id` 対策済み
 
 ## 📁 プロジェクト構造
 
@@ -102,7 +104,6 @@ oauth_config:
       - app_mentions:read  # @helpdeskbot help のメンション受信
       - chat:write         # Botが参加済みチャンネルへの投稿
       - chat:write.public  # Botが未参加のパブリックチャンネルへの投稿
-      - commands           # スラッシュコマンドの使用
       - channels:history   # パブリックチャンネルのメッセージ履歴読み取り
       - im:history         # DM（ダイレクトメッセージ）の履歴読み取り
 
@@ -171,10 +172,12 @@ https://xxxx.ngrok.io/webhook
 /invite @YourBotName
 ```
 
-### 2. help コマンドを実行
+### 2. help メンションを送る
+
+チャンネルで Bot にメンション
 
 ```
-help
+@helpdeskbot help
 ```
 
 ### 3. カテゴリを選択
@@ -189,7 +192,7 @@ help
 
 ### 5. 受付完了メッセージを確認
 
-スレッドに受付番号と内容が投稿される
+スレッドに受付番号と内容が投稿され、ボタンカードが自動削除される
 
 ## 🔄 State Adapter の切り替え
 
@@ -235,9 +238,8 @@ npm start
 vercel
 ```
 
-### Cloudflare Workers / AWS Lambda
-
-Serverless 環境でも動作可能（設定は別途必要）
+Vercel 環境では `@vercel/functions` の `waitUntil` が自動的に有効になり、
+Slack の 3 秒以内レスポンス要件（`expired_trigger_id` 問題）に対応します。
 
 ## 🧪 型チェック
 
@@ -278,7 +280,7 @@ npm run type-check
 
 ## 📚 参考リンク
 
-- [Vercel Chat SDK](https://vercel.com/blog/introducing-chat-sdk)
+- [Chat SDK ドキュメント](https://www.chat-sdk.dev/docs)
 - [Slack API Documentation](https://api.slack.com/)
 - [Redis Documentation](https://redis.io/docs/)
 
