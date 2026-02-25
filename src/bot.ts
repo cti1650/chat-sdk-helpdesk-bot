@@ -119,6 +119,9 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
     ].join("\n"),
   });
 
+  // フォーム送信後にボタンカードを削除
+  await event.relatedMessage?.delete();
+
   // ログ出力（実際の運用ではDBに保存など）
   console.log(`📝 New ticket created: ${ticketId}`, {
     category,
