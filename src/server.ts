@@ -1,58 +1,33 @@
-import express, { type Request, type Response } from "express";
-import dotenv from "dotenv";
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
 import { waitUntil } from "@vercel/functions";
+import dotenv from "dotenv";
 import chat from "./bot.js";
 
-// 環境変数を読み込み
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
-// ヘルスチェックエンドポイント
-app.get("/health", (_req: Request, res: Response) => {
-  res.json({
+const app = new Hono();
+
+app.get("/health", (c) =>
+  c.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    stateAdapter: process.env.REDIS_URL ? "redis" : "memory"
-  });
-});
+    stateAdapter: process.env.REDIS_URL ? "redis" : "memory",
+  })
+);
 
-// Webhook エンドポイント
-// Slack 署名検証のため生ボディを保持し、Web API Request に変換して渡す
-app.post("/webhook", express.raw({ type: "*/*" }), async (req: Request, res: Response) => {
-  const host = req.get("host") ?? "localhost";
-  const url = `${req.protocol}://${host}${req.originalUrl}`;
-
-  const headers: Record<string, string> = {};
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (value !== undefined) {
-      headers[key] = Array.isArray(value) ? value.join(", ") : value;
-    }
-  }
-
-  const webRequest = new Request(url, {
-    method: req.method,
-    headers,
-    body: req.body as Buffer,
-  });
-
-  const webResponse = await chat.webhooks.slack(webRequest, {
+app.post("/webhook", (c) =>
+  chat.webhooks.slack(c.req.raw, {
     waitUntil: process.env.VERCEL ? waitUntil : undefined,
-  });
+  })
+);
 
-  res.status(webResponse.status);
-  for (const [key, value] of webResponse.headers.entries()) {
-    res.setHeader(key, value);
-  }
-  res.end(Buffer.from(await webResponse.arrayBuffer()));
-});
-
-// Vercel は export default app を検出した場合 app.listen() を無視するため条件分岐不要
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Webhook endpoint: http://localhost:${PORT}/webhook`);
-  console.log(`💚 Health check: http://localhost:${PORT}/health`);
+serve({ fetch: app.fetch, port: PORT }, (info) => {
+  console.log(`🚀 Server running on port ${info.port}`);
+  console.log(`📡 Webhook endpoint: http://localhost:${info.port}/webhook`);
+  console.log(`💚 Health check: http://localhost:${info.port}/health`);
 
   if (!process.env.SLACK_BOT_TOKEN) {
     console.warn("⚠️  SLACK_BOT_TOKEN is not set");
@@ -64,7 +39,6 @@ app.listen(PORT, () => {
 
 export default app;
 
-// エラーハンドリング
 process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
