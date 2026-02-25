@@ -25,6 +25,7 @@
     "@chat-adapter/teams": "^4.14.0",
     "@chat-adapter/state-redis": "^4.14.0",
     "@chat-adapter/state-memory": "^4.14.0",
+    "@vercel/functions": "^3.4.3",
     "express": "^5.0.0",
     "dotenv": "^16.4.5"
   },

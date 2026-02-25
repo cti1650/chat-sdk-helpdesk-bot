@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from "express";
 import dotenv from "dotenv";
+import { waitUntil } from "@vercel/functions";
 import chat from "./bot.js";
 
 // 環境変数を読み込み
@@ -36,7 +37,9 @@ app.post("/webhook", express.raw({ type: "*/*" }), async (req: Request, res: Res
     body: req.body as Buffer,
   });
 
-  const webResponse = await chat.webhooks.slack(webRequest);
+  const webResponse = await chat.webhooks.slack(webRequest, {
+    waitUntil: process.env.VERCEL ? waitUntil : undefined,
+  });
 
   res.status(webResponse.status);
   for (const [key, value] of webResponse.headers.entries()) {
