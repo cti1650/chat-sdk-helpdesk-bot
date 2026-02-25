@@ -75,43 +75,62 @@ PORT=3000
 
 ### 4. Slack App の作成と設定
 
-#### 4.1. Slack App を作成
+#### 4.1. Slack App を作成（manifest から）
 
 1. [Slack API Console](https://api.slack.com/apps) にアクセス
-2. **Create New App** → **From scratch**
-3. App Name と Workspace を選択
+2. **Create New App** → **From an app manifest** を選択
+3. ワークスペースを選択
+4. 以下の YAML を貼り付けて **「Create」**
 
-#### 4.2. Bot Token Scopes を追加
+```yaml
+_metadata:
+  major_version: 1
+  minor_version: 1
 
-**OAuth & Permissions** → **Bot Token Scopes** で以下を追加
+display_information:
+  name: "Helpdesk Bot"
+  description: "Slack上でヘルプデスク対応を自動化するBot。バグ報告・機能要望をフォームで受け付けます。"
 
-- `chat:write`
-- `chat:write.public`
-- `commands`
-- `im:history`
-- `channels:history`
+features:
+  bot_user:
+    display_name: "helpdeskbot"
+    always_online: false
 
-#### 4.3. Install App to Workspace
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read  # @helpdeskbot help のメンション受信
+      - chat:write         # Botが参加済みチャンネルへの投稿
+      - chat:write.public  # Botが未参加のパブリックチャンネルへの投稿
+      - commands           # スラッシュコマンドの使用
+      - channels:history   # パブリックチャンネルのメッセージ履歴読み取り
+      - im:history         # DM（ダイレクトメッセージ）の履歴読み取り
+
+settings:
+  socket_mode_enabled: false
+  org_deploy_enabled: false
+  token_rotation_enabled: false
+  event_subscriptions:
+    request_url: "https://your-domain.com/webhook"
+    bot_events:
+      - app_mention      # @helpdeskbot が含むメッセージを受信
+      - message.channels # パブリックチャンネルのメッセージ受信
+      - message.im       # DM のメッセージ受信
+  interactivity:
+    is_enabled: true
+    request_url: "https://your-domain.com/webhook"
+```
+
+> `your-domain.com` はデプロイ後の実際のドメインに置き換えてください
+
+#### 4.2. Install App to Workspace
 
 **Install App** からワークスペースにインストール
 
-#### 4.4. Bot Token と Signing Secret をコピー
+#### 4.3. Bot Token と Signing Secret をコピー
 
 - **OAuth & Permissions** → **Bot User OAuth Token** をコピー → `SLACK_BOT_TOKEN`
 - **Basic Information** → **Signing Secret** をコピー → `SLACK_SIGNING_SECRET`
-
-#### 4.5. Event Subscriptions を設定
-
-**Event Subscriptions** を有効化し、Request URL を設定
-
-```
-https://your-domain.com/webhook
-```
-
-**Subscribe to bot events** で以下を追加
-
-- `message.channels`
-- `message.im`
 
 ### 5. 開発サーバーを起動
 
