@@ -7,22 +7,34 @@ import {
   TextInput,
   Select,
   SelectOption,
-  root,
-  paragraph,
-  strong,
-  text,
+  ConsoleLogger,
+  type ModalResponse,
 } from "chat";
-import { initializeState } from "./state";
+import { SlackAdapter } from "@chat-adapter/slack";
+import { initializeState } from "./state.js";
 
+const logger = new ConsoleLogger();
 const state = initializeState();
-const chat = new Chat({ state });
+
+const chat = new Chat({
+  adapters: {
+    slack: new SlackAdapter({
+      botToken: process.env.SLACK_BOT_TOKEN,
+      signingSecret: process.env.SLACK_SIGNING_SECRET!,
+      logger,
+    }),
+  },
+  state,
+  userName: "helpdeskbot",
+  logger,
+});
 
 /**
- * 1️⃣ help トリガー
- * ユーザーが "help" と投稿すると、カテゴリ選択カードを表示
+ * 1️⃣ help メンション
+ * ユーザーが @helpdeskbot help と投稿すると、カテゴリ選択カードを表示
  */
-chat.on("message.create", async ({ message, thread }) => {
-  if (message.text?.toLowerCase() === "help") {
+chat.onNewMention(async (thread, message) => {
+  if (message.text?.toLowerCase().includes("help")) {
     await thread.post(
       Card({
         title: "お問い合わせカテゴリを選択してください",
@@ -48,9 +60,8 @@ chat.on("message.create", async ({ message, thread }) => {
  * 2️⃣ カテゴリボタン押下
  * ボタンが押されたらモーダルフォームを開く
  */
-chat.on("action", async ({ event }) => {
-  const category = event.action.id;
-
+chat.onAction(async (event) => {
+  const category = event.actionId;
   const title = category === "bug" ? "バグ報告フォーム" : "機能要望フォーム";
 
   await event.openModal(
@@ -62,13 +73,11 @@ chat.on("action", async ({ event }) => {
         TextInput({
           id: "title",
           label: "件名",
-          required: true
         }),
         TextInput({
           id: "description",
           label: "詳細",
           multiline: true,
-          required: true
         }),
         Select({
           id: "priority",
@@ -88,26 +97,26 @@ chat.on("action", async ({ event }) => {
  * 3️⃣ モーダル送信
  * フォーム送信後、受付完了メッセージをスレッドに投稿
  */
-chat.on("modal.submit", async ({ event, thread }) => {
+chat.onModalSubmit(async (event): Promise<ModalResponse | undefined> => {
   const { title, description, priority } = event.values;
 
   // チケットIDを生成
-  const ticketId = `HD-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+  const ticketId = `HD-${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`;
 
   // カテゴリを取得（callbackIdから）
   const category = event.callbackId.includes("bug") ? "バグ報告" : "機能要望";
 
-  await thread.post(
-    root([
-      paragraph([strong([text("受付完了 ✅")])]),
-      paragraph([text(`受付番号: ${ticketId}`)]),
-      paragraph([text(`カテゴリ: ${category}`)]),
-      paragraph([text(`件名: ${title}`)]),
-      paragraph([text(`優先度: ${priority}`)]),
-      paragraph([text("---")]),
-      paragraph([text(description)]),
-    ])
-  );
+  await event.relatedThread?.post({
+    markdown: [
+      `**受付完了 ✅**`,
+      `受付番号: ${ticketId}`,
+      `カテゴリ: ${category}`,
+      `件名: ${title}`,
+      `優先度: ${priority}`,
+      `---`,
+      description,
+    ].join("\n"),
+  });
 
   // ログ出力（実際の運用ではDBに保存など）
   console.log(`📝 New ticket created: ${ticketId}`, {
@@ -116,6 +125,8 @@ chat.on("modal.submit", async ({ event, thread }) => {
     priority,
     description,
   });
+
+  return undefined;
 });
 
 export default chat;

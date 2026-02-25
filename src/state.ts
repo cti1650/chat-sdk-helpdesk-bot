@@ -1,5 +1,5 @@
-import { RedisState } from "@chat-adapter/state-redis";
-import { MemoryState } from "@chat-adapter/state-memory";
+import { createRedisState } from "@chat-adapter/state-redis";
+import { createMemoryState } from "@chat-adapter/state-memory";
 
 /**
  * State Adapterを初期化
@@ -13,9 +13,9 @@ import { MemoryState } from "@chat-adapter/state-memory";
 export function initializeState() {
   if (process.env.REDIS_URL) {
     console.log("✅ Using Redis State Adapter");
-    return new RedisState({ url: process.env.REDIS_URL });
+    return createRedisState({ url: process.env.REDIS_URL });
   }
 
   console.log("⚠️  Using Memory State Adapter (development only)");
-  return new MemoryState();
+  return createMemoryState();
 }

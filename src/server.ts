@@ -1,6 +1,6 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import dotenv from "dotenv";
-import chat from "./bot";
+import chat from "./bot.js";
 
 // 環境変数を読み込み
 dotenv.config();
@@ -8,11 +8,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// JSON body parser
-app.use(express.json());
-
 // ヘルスチェックエンドポイント
-app.get("/health", (req, res) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
@@ -21,8 +18,32 @@ app.get("/health", (req, res) => {
 });
 
 // Webhook エンドポイント
-// Chat SDK の router() メソッドを使用してイベントハンドリング
-app.post("/webhook", chat.router());
+// Slack 署名検証のため生ボディを保持し、Web API Request に変換して渡す
+app.post("/webhook", express.raw({ type: "*/*" }), async (req: Request, res: Response) => {
+  const host = req.get("host") ?? "localhost";
+  const url = `${req.protocol}://${host}${req.originalUrl}`;
+
+  const headers: Record<string, string> = {};
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value !== undefined) {
+      headers[key] = Array.isArray(value) ? value.join(", ") : value;
+    }
+  }
+
+  const webRequest = new Request(url, {
+    method: req.method,
+    headers,
+    body: req.body as Buffer,
+  });
+
+  const webResponse = await chat.webhooks.slack(webRequest);
+
+  res.status(webResponse.status);
+  for (const [key, value] of webResponse.headers.entries()) {
+    res.setHeader(key, value);
+  }
+  res.end(Buffer.from(await webResponse.arrayBuffer()));
+});
 
 // ローカル開発時のみサーバー起動（Vercel はエクスポートされたアプリを使用）
 if (!process.env.VERCEL) {
