@@ -247,19 +247,6 @@ Slack の 3 秒以内レスポンス要件（`expired_trigger_id` 問題）に�
 npm run type-check
 ```
 
-## 🔒 セキュリティ
-
-- **Bot Token と Signing Secret は必ず環境変数で管理**
-- `.env` ファイルは `.gitignore` に追加済み
-- 本番環境では HTTPS を使用
-
-## 🛠 拡張アイデア
-
-- [ ] Redis でチケット情報を永続化
-- [ ] GitHub / Linear 連携で Issue 化
-- [ ] LLM 自動要約機能の導入
-- [ ] スレッド購読で追加質問対応
-
 ## 📌 トラブルシューティング
 
 ### Bot が反応しない
@@ -268,10 +255,6 @@ npm run type-check
 2. **Event Subscriptions の Request URL が正しいか確認**
 3. **ngrok が起動しているか確認**（開発時）
 4. **Bot がチャンネルに招待されているか確認**
-
-### Memory State Adapter の警告
-
-開発環境では問題ありません。本番環境では Redis を設定してください。
 
 ### Webhook エラー
 
@@ -287,9 +270,3 @@ npm run type-check
 ## 📄 ライセンス
 
 ISC
-
----
-
-**開発時間**: 初回セットアップ約30分
-**メンテナンス性**: ⭐⭐⭐⭐⭐ 高（TypeScript + 明確な構造）
-**学習コスト**: ⭐⭐⭐ 中（Chat SDK の理解が必要）
