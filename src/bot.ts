@@ -70,12 +70,16 @@ chat.onAction(["bug", "feature"], async (event) => {
   // threadId は "slack:C123:1234567890.123456" 形式、messageId は "1234567890.123456" 形式のため endsWith で比較
   const isInThread = !!event.threadId && !event.threadId.endsWith(event.messageId);
 
+  // チャンネルルート用に threadId から "slack:C123ABC" 形式のチャンネルIDを抽出
+  const [adapter, channelPart] = event.threadId?.split(":") ?? [];
+  const channelId = adapter && channelPart ? `${adapter}:${channelPart}` : undefined;
+
   await event.openModal(
     Modal({
       callbackId: `helpdesk_submit_${category}`,
       title,
       submitLabel: "送信",
-      privateMetadata: JSON.stringify({ isInThread }),
+      privateMetadata: JSON.stringify({ isInThread, channelId }),
       children: [
         TextInput({
           id: "title",
@@ -116,8 +120,8 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
   // カテゴリを取得（callbackIdから）
   const category = event.callbackId.includes("bug") ? "バグ報告" : "機能要望";
 
-  // onAction で設定した privateMetadata からスレッド内かどうかを取得
-  const { isInThread } = JSON.parse(event.privateMetadata || "{}") as { isInThread?: boolean };
+  // onAction で設定した privateMetadata からスレッド内かどうか・チャンネルIDを取得
+  const { isInThread, channelId } = JSON.parse(event.privateMetadata || "{}") as { isInThread?: boolean; channelId?: string };
 
   const completionMessage = {
     markdown: [
@@ -133,10 +137,9 @@ chat.onModalSubmit(["helpdesk_submit_bug", "helpdesk_submit_feature"], async (ev
   if (isInThread) {
     // メンション起因: スレッド返信として投稿
     await event.relatedThread?.post(completionMessage);
-  } else {
-    // スラッシュコマンド起因: チャンネルへ独立メッセージとして投稿
-    // relatedThread が取れる場合はその channel へ、取れない場合は relatedChannel へフォールバック
-    await (event.relatedThread?.channel ?? event.relatedChannel)?.post(completionMessage);
+  } else if (channelId) {
+    // スラッシュコマンド起因: onAction で取得したチャンネルIDへ独立メッセージとして投稿
+    await chat.channel(channelId).post(completionMessage);
   }
 
   // フォーム送信後にボタンカードを削除
